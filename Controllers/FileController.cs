@@ -66,5 +66,16 @@ namespace MediaSync.Controllers
             }
             catch(Exception error) { return BadRequest(error.Message); }
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetFileIndex()
+        {
+            try
+            {
+                var result = await FileService.GetFileIndex();
+                return Ok(result);
+            }
+            catch(Exception error) { return BadRequest(error.Message); }
+        }
     }
 }
