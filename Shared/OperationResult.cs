@@ -12,10 +12,12 @@ namespace MediaSync.Shared
     {
         public T Result { get; set; }
         public TimeSpan Elapsed { get; set; }
-        public bool Completed
+        public bool Completed { get; set; } = false;
+        public bool Failed
         {
-            get { return Elapsed != null; }
+            get { return Error != null; }
         }
+        public string Error { get; set; }
         public void SetResult(T result) => Result = result;
         public static async Task<AsyncTimedOperation<T>> Start(Func<T> operation)
         {
@@ -23,12 +25,19 @@ namespace MediaSync.Shared
             Stopwatch timer = new Stopwatch();
             timer.Start();
             T operationResult = default;
-            await Task.Run(() => {
-                operationResult = operation();
+            await Task.Run(() =>
+            {
+                try { operationResult = operation(); }
+                catch (Exception error) { asyncTimedOperation.Error = error.Message; }
+                finally
+                {
+                    timer.Stop();
+                    asyncTimedOperation.Result = operationResult;
+                    asyncTimedOperation.Elapsed = timer.Elapsed;
+                    if (!asyncTimedOperation.Failed)
+                        asyncTimedOperation.Completed = true;
+                }
             });
-            timer.Stop();
-            asyncTimedOperation.Result = operationResult;
-            asyncTimedOperation.Elapsed = timer.Elapsed;
             return asyncTimedOperation;
         }
     }
