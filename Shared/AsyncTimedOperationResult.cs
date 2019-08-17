@@ -36,7 +36,7 @@ namespace MediaSync.Shared
         /// </summary>
         /// <param name="operation">The operation to execute.</param>
         /// <returns>AsyncTimedOperationResult instance representing the result of the operation.</returns>
-        public static async Task<AsyncTimedOperationResult<T>> GetResult(Func<T> operation)
+        public static async Task<AsyncTimedOperationResult<T>> GetResult(Operation<T> operation)
         {
             AsyncTimedOperationResult<T> asyncTimedOperation = new AsyncTimedOperationResult<T>();
             Stopwatch timer = new Stopwatch();
@@ -58,4 +58,10 @@ namespace MediaSync.Shared
             return asyncTimedOperation;
         }
     }
+    /// <summary>
+    /// Represents a synchronous operation that returns a result.
+    /// </summary>
+    /// <typeparam name="T">Type of the result</typeparam>
+    /// <returns>The result of the operation</returns>
+    public delegate T Operation<T>();
 }
