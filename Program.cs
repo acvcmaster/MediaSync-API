@@ -17,8 +17,15 @@ namespace MediaSync
             CreateWebHostBuilder(args).Build().Run();
         }
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
+        public static IWebHostBuilder CreateWebHostBuilder(string[] args)
+        {
+#if DEBUG
+            return WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>();
+#else
+            return WebHost.CreateDefaultBuilder(args)
+                .UseStartup<Startup>().UseUrls("http://*:8080");
+#endif
+        }
     }
 }

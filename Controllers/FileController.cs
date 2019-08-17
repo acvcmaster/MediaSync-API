@@ -31,16 +31,12 @@ namespace MediaSync.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetFiles([FromQuery] string[] extensions = null)
+        public async Task<IActionResult> GetFileNames([FromQuery] string[] extensions = null)
         {
-            var result = await FileService.GetFiles();
+            var result = await FileService.GetFileNames(extensions);
             if (result.Failed)
                 return BadRequest(result);
 
-            result.Result = (from file in result.Result
-                             where file.EndsWithAny(extensions)
-                             select file)
-                                .ToArray();
             return Ok(result);
         }
 
@@ -48,19 +44,11 @@ namespace MediaSync.Controllers
         [Produces("application/octet-stream", "application/json")]
         public async Task<IActionResult> GetFile([FromQuery] string file)
         {
-            var contentProvider = new FileExtensionContentTypeProvider();
             var result = await FileService.GetFile(file);
             if (result.Failed)
                 return BadRequest(result);
-
-            string contentType = default;
-            if (!contentProvider.TryGetContentType(file, out contentType))
-            {
-                result.Error = $"Content type not found for '{file}.'";
-                return BadRequest(result);
-            }
             
-            return File(result.Result, contentType);
+            return File(result.Result.Data, result.Result.ContentType);
         }
 
         [HttpGet]

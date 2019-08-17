@@ -1,10 +1,11 @@
 using System;
 using System.Linq;
-using System.Text;
 using System.IO;
 using System.Threading.Tasks;
-using System.Security.Cryptography;
 using MediaSync.Shared;
+using MediaSync.Types;
+using Microsoft.AspNetCore.StaticFiles;
+using System.Collections.Generic;
 
 namespace MediaSync.Services
 {
@@ -16,10 +17,10 @@ namespace MediaSync.Services
         /// <value></value>
         string Path { get; }
         void SetPath(string path);
-        Task<AsyncTimedOperation<string[]>> GetFiles();
-        Task<AsyncTimedOperation<long>> GetFileSize(string file);
-        Task<AsyncTimedOperation<byte[]>> GetFile(string file);
-        Task<AsyncTimedOperation<FileIndexEntry[]>> GetFileIndex();
+        Task<AsyncTimedOperationResult<string[]>> GetFileNames(string[] extensions = null);
+        Task<AsyncTimedOperationResult<long>> GetFileSize(string file);
+        Task<AsyncTimedOperationResult<FileResult>> GetFile(string file);
+        Task<AsyncTimedOperationResult<FileIndexEntry[]>> GetFileIndex(string[] extensions = null);
         bool CheckValidPath(string path);
     }
 
@@ -47,9 +48,9 @@ namespace MediaSync.Services
         {
             return Directory.Exists(path);
         }
-        public async Task<AsyncTimedOperation<long>> GetFileSize(string file)
+        public async Task<AsyncTimedOperationResult<long>> GetFileSize(string file)
         {
-            return await AsyncTimedOperation<long>.Start(() => GetFileSizeSync(file));
+            return await AsyncTimedOperationResult<long>.GetResult(() => GetFileSizeSync(file));
         }
 
         private long GetFileSizeSync(string file)
@@ -59,42 +60,55 @@ namespace MediaSync.Services
             return new FileInfo(file).Length;
         }
 
-        public async Task<AsyncTimedOperation<string[]>> GetFiles()
+        public async Task<AsyncTimedOperationResult<string[]>> GetFileNames(string[] extensions = null)
         {
-            return await AsyncTimedOperation<string[]>.Start(() => GetFilesSync());
+            return await AsyncTimedOperationResult<string[]>.GetResult(() => GetFileNamesSync(extensions));
         }
 
-        private string[] GetFilesSync()
+        private string[] GetFileNamesSync(string[] extensions = null)
         {
-            return Directory.GetFiles(Path).Select((file) =>
-                System.IO.Path.GetFileName(file)).ToArray();
+            var result = from file in Directory.GetFiles(Path)
+                where file.EndsWithAny(extensions)
+                select System.IO.Path.GetFileName(file);
+
+            return result.ToArray();
         }
 
-        public async Task<AsyncTimedOperation<byte[]>> GetFile(string file)
+        public async Task<AsyncTimedOperationResult<FileResult>> GetFile(string file)
         {
-            return await AsyncTimedOperation<byte[]>.Start(() => GetFileSync(file));
+            return await AsyncTimedOperationResult<FileResult>.GetResult(() => GetFileSync(file));
         }
 
-        private static byte[] GetFileSync(string file)
+        private static FileResult GetFileSync(string file)
         {
             if (!File.Exists(file))
                 throw new Exception($"No such file '{file}'");
-            return File.ReadAllBytes(file);
-        }
 
-        public async Task<AsyncTimedOperation<FileIndexEntry[]>> GetFileIndex()
-        {
-            return await AsyncTimedOperation<FileIndexEntry[]>.Start(() => GetFileIndexSync());
-        }
-
-        private FileIndexEntry[] GetFileIndexSync()
-        {
-            var allFiles = GetFilesSync();
-            var allSizes = allFiles.Select((file) => GetFileSizeSync(file)).ToArray();
-            var result = new FileIndexEntry[allFiles.Length];
-            for (int index = 0; index < allFiles.Length; index++)
-                result[index] = new FileIndexEntry { name = allFiles[index], size = allSizes[index] };
+            FileResult result = new FileResult();
+            string contentType;
+            if (!new FileExtensionContentTypeProvider().TryGetContentType(file, out contentType))
+                throw new Exception($"Content type not found for '{file}.'");
+            result.ContentType = contentType;
+            result.Data = File.ReadAllBytes(file);
             return result;
+        }
+
+        public async Task<AsyncTimedOperationResult<FileIndexEntry[]>> GetFileIndex(string[] extensions = null)
+        {
+            return await AsyncTimedOperationResult<FileIndexEntry[]>.GetResult(() => GetFileIndexSync(extensions));
+        }
+
+        private FileIndexEntry[] GetFileIndexSync(string[] extensions = null)
+        {
+            List<FileIndexEntry> allEntries = new List<FileIndexEntry>();
+            foreach(string file in GetFileNamesSync())
+                allEntries.Add(new FileIndexEntry { name = file, size = GetFileSizeSync(file)} );
+
+            var result = from entry in allEntries
+                where entry.name.EndsWithAny(extensions)
+                select entry;
+
+            return result.ToArray();
         }
     }
 }
