@@ -102,7 +102,7 @@ namespace MediaSync.Services
         {
             List<FileIndexEntry> allEntries = new List<FileIndexEntry>();
             foreach(string file in GetFileNamesSync())
-                allEntries.Add(new FileIndexEntry { name = file, size = GetFileSizeSync(file)} );
+                allEntries.Add(new FileIndexEntry { name = file, size = GetFileSizeSync(file) } );
 
             var result = from entry in allEntries
                 where entry.name.EndsWithAny(extensions)
