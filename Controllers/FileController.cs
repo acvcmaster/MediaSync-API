@@ -57,6 +57,7 @@ namespace MediaSync.Controllers
             var result = await FileService.GetFileSize(file);
             if (result.Failed)
                 return BadRequest(result);
+                
             return Ok(result);
         }
 
@@ -67,10 +68,6 @@ namespace MediaSync.Controllers
             if (result.Failed)
                 return BadRequest(result);
 
-            result.Result = (from file in result.Result
-                             where file.name.EndsWithAny(extensions)
-                             select file)
-                .ToArray();
             return Ok(result);
         }
     }
