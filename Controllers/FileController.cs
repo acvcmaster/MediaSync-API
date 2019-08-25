@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using MediaSync.Services;
 using Microsoft.AspNetCore.StaticFiles;
 using MediaSync.Shared;
+using MediaSync.Types;
 
 namespace MediaSync.Controllers
 {
@@ -69,6 +70,17 @@ namespace MediaSync.Controllers
                 return BadRequest(result);
 
             return Ok(result);
+        }
+
+        [HttpGet]
+        [Produces("image/jpeg", "application/json")]
+        public async Task<IActionResult> GetThumbnail([FromQuery] string file, [FromQuery] ThumbnailResolution? resolution = null)
+        {
+            var result = await FileService.GetThumbnail(file, resolution);
+            if (result.Failed)
+                return BadRequest(result);
+
+            return File(result.Result, "image/jpeg");
         }
     }
 }

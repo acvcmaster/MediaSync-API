@@ -32,11 +32,11 @@ namespace MediaSync.Shared
         /// <value></value>
         public string Error { get; private set; }
         /// <summary>
-        /// Executes an operation as an async task and returns it's result, alongside with exception and elapsed time information.
+        /// Executes a sync operation as an async task and returns it's result, alongside with exception and elapsed time information.
         /// </summary>
         /// <param name="operation">The operation to execute.</param>
         /// <returns>AsyncTimedOperationResult instance representing the result of the operation.</returns>
-        public static async Task<AsyncTimedOperationResult<T>> GetResult(Operation<T> operation)
+        public static async Task<AsyncTimedOperationResult<T>> GetResultFromSync(Operation<T> operation)
         {
             AsyncTimedOperationResult<T> asyncTimedOperation = new AsyncTimedOperationResult<T>();
             Stopwatch timer = new Stopwatch();
@@ -55,6 +55,30 @@ namespace MediaSync.Shared
                         asyncTimedOperation.Completed = true;
                 }
             });
+            return asyncTimedOperation;
+        }
+        
+        /// <summary>
+        /// Executes an async task and returns it's result, alongside with exception and elapsed time information.
+        /// </summary>
+        /// <param name="operation">The operation to execute.</param>
+        /// <returns>AsyncTimedOperationResult instance representing the result of the async operation.</returns>
+        public static async Task<AsyncTimedOperationResult<T>> GetResultFromAsync(Task<T> operation)
+        {
+            AsyncTimedOperationResult<T> asyncTimedOperation = new AsyncTimedOperationResult<T>();
+            Stopwatch timer = new Stopwatch();
+            timer.Start();
+            T operationResult = default;
+            try { operationResult = await operation; }
+            catch (Exception error) { asyncTimedOperation.Error = error.Message; }
+            finally
+            {
+                timer.Stop();
+                asyncTimedOperation.Result = operationResult;
+                asyncTimedOperation.Elapsed = timer.Elapsed;
+                if (!asyncTimedOperation.Failed)
+                    asyncTimedOperation.Completed = true;
+            }
             return asyncTimedOperation;
         }
     }

@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MediaSync.Services;
 using Swashbuckle.AspNetCore.Swagger;
+using Newtonsoft.Json.Converters;
 
 namespace MediaSync
 {
@@ -27,7 +28,8 @@ namespace MediaSync
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2).AddJsonOptions(options =>
+                options.SerializerSettings.Converters.Add(new StringEnumConverter()));
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new Info { Title = "MediaSync API", Version = "v1" });
