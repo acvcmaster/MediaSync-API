@@ -149,7 +149,7 @@ namespace MediaSync.Services
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "ffmpeg",
-                    Arguments = $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -f image2 -vframes 1 -vf scale={X}:{Y} {temporaryFile}",
+                    Arguments = $"-ss 00:01:30 -i \"{file}\" -hide_banner -loglevel panic -v quiet -f image2 -vframes 1 -vf scale={X}:{Y} {temporaryFile}",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     CreateNoWindow = true

@@ -28,6 +28,11 @@ namespace MediaSync
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors((options) => {
+                options.AddPolicy("_all", (builder) => {
+                    builder.WithOrigins("*");
+                });
+            });
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2).AddJsonOptions(options =>
                 options.SerializerSettings.Converters.Add(new StringEnumConverter()));
             services.AddSwaggerGen(c =>
@@ -56,6 +61,7 @@ namespace MediaSync
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "MediaSync API");
             });
 
+            app.UseCors("_all");
             app.UseHttpsRedirection();
             app.UseMvc();
         }
