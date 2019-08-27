@@ -41,7 +41,7 @@ namespace MediaSync.Shared
             AsyncTimedOperationResult<T> asyncTimedOperation = new AsyncTimedOperationResult<T>();
             Stopwatch timer = new Stopwatch();
             timer.Start();
-            T operationResult = default;
+            T operationResult = default(T);
             await Task.Run(() =>
             {
                 try { operationResult = operation(); }
@@ -68,7 +68,7 @@ namespace MediaSync.Shared
             AsyncTimedOperationResult<T> asyncTimedOperation = new AsyncTimedOperationResult<T>();
             Stopwatch timer = new Stopwatch();
             timer.Start();
-            T operationResult = default;
+            T operationResult = default(T);
             try { operationResult = await operation; }
             catch (Exception error) { asyncTimedOperation.Error = error.Message; }
             finally
