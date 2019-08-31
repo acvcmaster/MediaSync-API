@@ -19,11 +19,10 @@ namespace MediaSync.Services
         /// </summary>
         /// <value></value>
         string Path { get; }
-        void SetPath(string path);
+        void SetPath(string path, bool aggressivePaths = true);
         Task<AsyncTimedOperationResult<string[]>> GetFileNames(string[] extensions = null);
-        Task<AsyncTimedOperationResult<long>> GetFileSize(string file);
         Task<AsyncTimedOperationResult<FileResult>> GetFile(string file);
-        Task<AsyncTimedOperationResult<FileIndexEntry[]>> GetFileIndex(string[] extensions = null);
+        Task<AsyncTimedOperationResult<object>> GetFileDetails(string file);
         Task<AsyncTimedOperationResult<byte[]>> GetThumbnail(string name, ThumbnailResolution? resolution);
         Task<AsyncTimedOperationResult<object>> SaveFile(IFormFile file);
         Task<AsyncTimedOperationResult<string[]>> GetMetadata(string file);
@@ -36,39 +35,35 @@ namespace MediaSync.Services
         public string Path => _path;
         protected Random rng = new Random();
 
-        public FileService(string defaultPath)
+        public FileService(string defaultPath, bool aggressivePaths = true)
         {
-            SetPath(defaultPath);
+            SetPath(defaultPath, aggressivePaths);
         }
 
-        public void SetPath(string path)
+        public void SetPath(string path, bool aggressivePaths = true)
         {
             if (path == string.Empty || path == null)
                 return;
+            
+            if (path.StartsWith("~"))
+                path = Environment.CurrentDirectory + path.Substring(1);
 
-            if (CheckValidPath(path))
+            if (!Directory.Exists(path))
             {
-                _path = path;
-                Environment.CurrentDirectory = path;
+                if (aggressivePaths)
+                    Directory.CreateDirectory(path);
+                else throw new Exception($"Path '{path}' not found!");
             }
-            else throw new Exception($"'{path}' is not a valid directory.");
+
+            Environment.CurrentDirectory = path;
+            _path = Environment.CurrentDirectory;
         }
 
         public bool CheckValidPath(string path)
         {
             return Directory.Exists(path);
         }
-        public async Task<AsyncTimedOperationResult<long>> GetFileSize(string file)
-        {
-            return await AsyncTimedOperationResult<long>.GetResultFromSync(() => GetFileSizeSync(file));
-        }
 
-        private long GetFileSizeSync(string file)
-        {
-            if (!File.Exists(file))
-                throw new Exception($"No such file '{file}'");
-            return new FileInfo(file).Length;
-        }
 
         public async Task<AsyncTimedOperationResult<string[]>> GetFileNames(string[] extensions = null)
         {
@@ -103,22 +98,25 @@ namespace MediaSync.Services
             return result;
         }
 
-        public async Task<AsyncTimedOperationResult<FileIndexEntry[]>> GetFileIndex(string[] extensions = null)
+        public async Task<AsyncTimedOperationResult<object>> GetFileDetails(string file)
         {
-            return await AsyncTimedOperationResult<FileIndexEntry[]>.GetResultFromSync(() => GetFileIndexSync(extensions));
+            return await AsyncTimedOperationResult<object>.GetResultFromSync(() => GetFileDetailsSync(file));
         }
 
-        private FileIndexEntry[] GetFileIndexSync(string[] extensions = null)
+        private object GetFileDetailsSync(string file)
         {
-            List<FileIndexEntry> allEntries = new List<FileIndexEntry>();
-            foreach (string file in GetFileNamesSync())
-                allEntries.Add(new FileIndexEntry { name = file, size = GetFileSizeSync(file) });
-
-            var result = from entry in allEntries
-                         where entry.name.EndsWithAny(extensions)
-                         select entry;
-
-            return result.ToArray();
+            if (!File.Exists(file))
+                throw new Exception($"No such file '{file}'");
+            
+            FileInfo fileInfo =  new FileInfo(file);
+            return new 
+            {
+                fileInfo.CreationTime,
+                fileInfo.LastAccessTime,
+                fileInfo.LastWriteTime,
+                fileInfo.Length,
+                fileInfo.Extension
+            };
         }
 
         public async Task<AsyncTimedOperationResult<byte[]>> GetThumbnail(string name, ThumbnailResolution? resolution)

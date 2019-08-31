@@ -23,7 +23,7 @@ namespace MediaSync
             return WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>().UseUrls("http://*:8080")
                 .UseKestrel((options) => {
-                    options.Limits.MaxRequestBodySize = 2 * Constants.GB; // 2 GB
+                    options.Limits.MaxRequestBodySize = long.MaxValue;
                 });
         }
     }

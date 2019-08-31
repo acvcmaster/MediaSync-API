@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MediaSync.Services;
-using Microsoft.AspNetCore.StaticFiles;
-using MediaSync.Shared;
 using MediaSync.Types;
 using Microsoft.AspNetCore.Http;
 
@@ -21,6 +17,16 @@ namespace MediaSync.Controllers
             FileService = fileService;
         }
 
+        [HttpGet]
+        public IActionResult GetPath()
+        {
+            try
+            {
+                return Ok(FileService.Path);
+            }
+            catch (Exception error) { return BadRequest(error.Message); }
+        }
+
 #if DEBUG
         [HttpPatch]
         public IActionResult SetPath(string path)
@@ -34,6 +40,17 @@ namespace MediaSync.Controllers
         }
 #endif
 
+        [HttpPost]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> SaveFile(IFormFile file)
+        {
+            var result = await FileService.SaveFile(file);
+            if (result.Failed)
+                return BadRequest(result);
+
+            return Ok(result.Result);
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetFileNames([FromQuery] string[] extensions = null)
         {
@@ -41,7 +58,17 @@ namespace MediaSync.Controllers
             if (result.Failed)
                 return BadRequest(result);
 
-            return Ok(result);
+            return Ok(result.Result);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetFileDetails(string file)
+        {
+            var result = await FileService.GetFileDetails(file);
+            if (result.Failed)
+                return BadRequest(result);
+
+            return Ok(result.Result);
         }
 
         [HttpGet]
@@ -56,26 +83,6 @@ namespace MediaSync.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetFileSize([FromQuery] string file)
-        {
-            var result = await FileService.GetFileSize(file);
-            if (result.Failed)
-                return BadRequest(result);
-                
-            return Ok(result);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetFileIndex([FromQuery] string[] extensions = null)
-        {
-            var result = await FileService.GetFileIndex();
-            if (result.Failed)
-                return BadRequest(result);
-
-            return Ok(result);
-        }
-
-        [HttpGet]
         [Produces("image/jpeg", "application/json")]
         public async Task<IActionResult> GetThumbnail([FromQuery] string file, [FromQuery] ThumbnailResolution? resolution = null)
         {
@@ -84,17 +91,6 @@ namespace MediaSync.Controllers
                 return BadRequest(result);
 
             return File(result.Result, "image/jpeg");
-        }
-
-        [HttpPost]
-        [Consumes("multipart/form-data")]
-        public async Task<IActionResult> SaveFile(IFormFile file)
-        {
-            var result = await FileService.SaveFile(file);
-            if (result.Failed)
-                return BadRequest(result);
-
-            return Ok(result.Result);
         }
 
         [HttpGet]
