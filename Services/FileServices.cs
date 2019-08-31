@@ -40,6 +40,9 @@ namespace MediaSync.Services
 
         public void SetPath(string path)
         {
+            if (path == string.Empty || path == null)
+                return;
+                
             if (CheckValidPath(path))
             {
                 _path = path;

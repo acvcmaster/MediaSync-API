@@ -41,6 +41,8 @@ namespace MediaSync
             });
 #if DEBUG
             services.AddSingleton<IFileService, FileService>((service) => new FileService(Configuration.GetSection("DefaultPathDev").Value));
+#elif DOCKER
+            services.AddSingleton<IFileService, FileService>((service) => new FileService(Configuration.GetSection("DefaultPathDocker").Value));
 #else
             services.AddSingleton<IFileService, FileService>((service) => new FileService(Configuration.GetSection("DefaultPath").Value));
 #endif

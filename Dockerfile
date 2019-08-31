@@ -5,8 +5,8 @@ ADD . ./MediaSync-API/
 WORKDIR /root/MediaSync-API
 
 RUN dotnet restore
-RUN dotnet publish -c Release
-WORKDIR /root/MediaSync-API/bin/Release/netcoreapp2.2/publish
+RUN dotnet publish -c Docker
+WORKDIR /root/MediaSync-API/bin/Docker/netcoreapp2.2/publish
 run mkdir Media
 run apt update
 run apt install -y ffmpeg wget
