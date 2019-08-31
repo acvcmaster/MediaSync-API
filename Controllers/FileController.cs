@@ -20,6 +20,7 @@ namespace MediaSync.Controllers
             FileService = fileService;
         }
 
+#if DEBUG
         [HttpPatch]
         public IActionResult SetPath(string path)
         {
@@ -30,6 +31,7 @@ namespace MediaSync.Controllers
             }
             catch (Exception error) { return BadRequest(error.Message); }
         }
+#endif
 
         [HttpGet]
         public async Task<IActionResult> GetFileNames([FromQuery] string[] extensions = null)

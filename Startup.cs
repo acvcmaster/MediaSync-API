@@ -39,7 +39,11 @@ namespace MediaSync
             {
                 c.SwaggerDoc("v1", new Info { Title = "MediaSync API", Version = "v1" });
             });
+#if DEBUG
+            services.AddSingleton<IFileService, FileService>((service) => new FileService(Configuration.GetSection("DefaultPathDev").Value));
+#else
             services.AddSingleton<IFileService, FileService>((service) => new FileService(Configuration.GetSection("DefaultPath").Value));
+#endif
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
