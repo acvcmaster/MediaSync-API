@@ -38,6 +38,8 @@ namespace MediaSync
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new Info { Title = "MediaSync API", Version = "v1" });
+            }).ConfigureSwaggerGen((options) => {
+                options.OperationFilter<FileUploadOperation>(); //Register File Upload Operation Filter
             });
 #if DEBUG
             services.AddSingleton<IFileService, FileService>((service) => new FileService(Configuration.GetSection("DefaultPathDev").Value));

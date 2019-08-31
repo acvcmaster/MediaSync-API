@@ -7,6 +7,7 @@ using MediaSync.Services;
 using Microsoft.AspNetCore.StaticFiles;
 using MediaSync.Shared;
 using MediaSync.Types;
+using Microsoft.AspNetCore.Http;
 
 namespace MediaSync.Controllers
 {
@@ -83,6 +84,27 @@ namespace MediaSync.Controllers
                 return BadRequest(result);
 
             return File(result.Result, "image/jpeg");
+        }
+
+        [HttpPost]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> SaveFile(IFormFile file)
+        {
+            var result = await FileService.SaveFile(file);
+            if (result.Failed)
+                return BadRequest(result);
+
+            return Ok(result.Result);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetMetadata([FromQuery] string file)
+        {
+            var result = await FileService.GetMetadata(file);
+            if (result.Failed)
+                return BadRequest(result);
+
+            return Ok(result.Result);
         }
     }
 }
