@@ -1,4 +1,4 @@
-FROM microsoft/dotnet:latest
+FROM microsoft/dotnet:2.2-sdk-bionic
 
 # Copy files
 WORKDIR /root/
@@ -9,6 +9,7 @@ WORKDIR /root/MediaSync-API
 RUN dotnet restore
 RUN dotnet publish -c Docker
 WORKDIR /root/MediaSync-API/bin/Docker/netcoreapp2.2/publish
+run mkdir Media
 
 # Install dependencies
 run apt update
@@ -22,11 +23,10 @@ ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8     
 
 # Download samples
-run mkdir Media
-run wget https://yt-dl.org/latest/youtube-dl -O /usr/bin/youtube-dl
-run chmod a+x /usr/bin/youtube-dl
-run hash -r
-run youtube-dl -f bestvideo+bestaudio/best -o "Media/%(title)s.%(ext)s" 'https://www.youtube.com/watch?v=AufydOsiD6M'
+# run wget https://yt-dl.org/latest/youtube-dl -O /usr/bin/youtube-dl
+# run chmod a+x /usr/bin/youtube-dl
+# run hash -r
+# run youtube-dl -f bestvideo+bestaudio/best -o "Media/%(title)s.%(ext)s" 'https://www.youtube.com/watch?v=AufydOsiD6M'
 
 EXPOSE 8080/tcp 
 
