@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using Microsoft.AspNetCore.Http;
 
 namespace MediaSync.Services
 {
@@ -18,13 +19,14 @@ namespace MediaSync.Services
         /// </summary>
         /// <value></value>
         string Path { get; }
-        void SetPath(string path);
+        void SetPath(string path, bool aggressivePaths = true);
         Task<AsyncTimedOperationResult<string[]>> GetFileNames(string[] extensions = null);
-        Task<AsyncTimedOperationResult<long>> GetFileSize(string file);
         Task<AsyncTimedOperationResult<FileResult>> GetFile(string file);
-        Task<AsyncTimedOperationResult<FileIndexEntry[]>> GetFileIndex(string[] extensions = null);
+        Task<AsyncTimedOperationResult<object>> GetDetails(string file);
         Task<AsyncTimedOperationResult<byte[]>> GetThumbnail(string name, ThumbnailResolution? resolution);
-        bool CheckValidPath(string path);
+        Task<AsyncTimedOperationResult<object>> SaveFile(IFormFile file);
+        Task<AsyncTimedOperationResult<object>> DeleteFile(string file);
+        Task<AsyncTimedOperationResult<string[]>> GetMetadata(string file);
     }
 
     public class FileService : IFileService
@@ -33,35 +35,28 @@ namespace MediaSync.Services
         public string Path => _path;
         protected Random rng = new Random();
 
-        public FileService(string defaultPath)
+        public FileService(string defaultPath, bool aggressivePaths = true)
         {
-            SetPath(defaultPath);
+            SetPath(defaultPath, aggressivePaths);
         }
 
-        public void SetPath(string path)
+        public void SetPath(string path, bool aggressivePaths = true)
         {
-            if (CheckValidPath(path))
+            if (path == string.Empty || path == null)
+                return;
+
+            if (path.StartsWith("~"))
+                path = Environment.CurrentDirectory + path.Substring(1);
+
+            if (!Directory.Exists(path))
             {
-                _path = path;
-                Environment.CurrentDirectory = path;
+                if (aggressivePaths)
+                    Directory.CreateDirectory(path);
+                else throw new Exception($"Path '{path}' not found!");
             }
-            else throw new Exception($"'{path}' is not a valid directory.");
-        }
 
-        public bool CheckValidPath(string path)
-        {
-            return Directory.Exists(path);
-        }
-        public async Task<AsyncTimedOperationResult<long>> GetFileSize(string file)
-        {
-            return await AsyncTimedOperationResult<long>.GetResultFromSync(() => GetFileSizeSync(file));
-        }
-
-        private long GetFileSizeSync(string file)
-        {
-            if (!File.Exists(file))
-                throw new Exception($"No such file '{file}'");
-            return new FileInfo(file).Length;
+            Environment.CurrentDirectory = path;
+            _path = Environment.CurrentDirectory;
         }
 
         public async Task<AsyncTimedOperationResult<string[]>> GetFileNames(string[] extensions = null)
@@ -97,22 +92,25 @@ namespace MediaSync.Services
             return result;
         }
 
-        public async Task<AsyncTimedOperationResult<FileIndexEntry[]>> GetFileIndex(string[] extensions = null)
+        public async Task<AsyncTimedOperationResult<object>> GetDetails(string file)
         {
-            return await AsyncTimedOperationResult<FileIndexEntry[]>.GetResultFromSync(() => GetFileIndexSync(extensions));
+            return await AsyncTimedOperationResult<object>.GetResultFromSync(() => GetDetailsSync(file));
         }
 
-        private FileIndexEntry[] GetFileIndexSync(string[] extensions = null)
+        private object GetDetailsSync(string file)
         {
-            List<FileIndexEntry> allEntries = new List<FileIndexEntry>();
-            foreach (string file in GetFileNamesSync())
-                allEntries.Add(new FileIndexEntry { name = file, size = GetFileSizeSync(file) });
+            if (!File.Exists(file))
+                throw new Exception($"No such file '{file}'");
 
-            var result = from entry in allEntries
-                         where entry.name.EndsWithAny(extensions)
-                         select entry;
-
-            return result.ToArray();
+            FileInfo fileInfo = new FileInfo(file);
+            return new
+            {
+                fileInfo.CreationTime,
+                fileInfo.LastAccessTime,
+                fileInfo.LastWriteTime,
+                fileInfo.Length,
+                fileInfo.Extension
+            };
         }
 
         public async Task<AsyncTimedOperationResult<byte[]>> GetThumbnail(string name, ThumbnailResolution? resolution)
@@ -124,7 +122,7 @@ namespace MediaSync.Services
         {
             if (!File.Exists(file))
                 throw new Exception($"No such file '{file}'");
-                
+
             int X = 320, Y = 180;
             if (resolution.HasValue)
             {
@@ -143,13 +141,12 @@ namespace MediaSync.Services
                 }
             }
 
-            var temporaryFile = GetTemporaryFile("jpg");
             var ffmpeg = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "ffmpeg",
-                    Arguments = $"-ss 00:01:30 -i \"{file}\" -hide_banner -loglevel panic -v quiet -f image2 -vframes 1 -vf scale={X}:{Y} {temporaryFile}",
+                    Arguments = $"-ss 00:01:30 -i \"{file}\" -hide_banner -loglevel panic -v quiet -f image2 -vframes 1 -vf scale={X}:{Y} -",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     CreateNoWindow = true
@@ -157,21 +154,72 @@ namespace MediaSync.Services
             };
 
             ffmpeg.Start();
-            ffmpeg.EnableRaisingEvents = true;
+            byte[] result = ffmpeg.StandardOutput.ReadBytesToEnd();
             ffmpeg.WaitForExit();
-            byte[] result = File.ReadAllBytes(temporaryFile);
-            File.Delete(temporaryFile);
             return result;
         }
 
-        private string GetTemporaryFile(string extension)
+        public async Task<AsyncTimedOperationResult<object>> SaveFile(IFormFile file)
         {
-            while (true)
+            return await AsyncTimedOperationResult<object>.GetResultFromSync(() => SaveFileSync(file));
+        }
+
+        private object SaveFileSync(IFormFile file)
+        {
+            if (File.Exists(file.FileName))
+                throw new Exception($"File '{file.FileName}' exists already.");
+
+            using (FileStream fileStream = File.Create(file.FileName))
             {
-                string result = $"tmp_{rng.Next(1, 100000)}.{extension}";
-                if (!File.Exists(result))
-                    return result;
+                var uploadStream = file.OpenReadStream();
+                uploadStream.CopyTo(fileStream);
+                fileStream.Close();
             }
+            return new { SavedFile = file.FileName, TimeStamp = DateTime.Now };
+        }
+
+        public async Task<AsyncTimedOperationResult<string[]>> GetMetadata(string file)
+        {
+            return await AsyncTimedOperationResult<string[]>.GetResultFromSync(() => GetMetadataSync(file));
+        }
+
+        private string[] GetMetadataSync(string file)
+        {
+            List<string> result = new List<string>();
+            var ffprobe = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "ffprobe",
+                    Arguments = $"\"{file}\" -hide_banner",
+                    UseShellExecute = false,
+                    RedirectStandardError = true
+                }
+            };
+
+            if (!ffprobe.Start())
+                throw new Exception("Failed to start ffprobe.");
+
+            var outputStream = ffprobe.StandardError;
+            outputStream.ReadLine();
+            while (!outputStream.EndOfStream)
+                result.Add(outputStream.ReadLine());
+            ffprobe.WaitForExit();
+            return result.ToArray();
+        }
+
+        public async Task<AsyncTimedOperationResult<object>> DeleteFile(string file)
+        {
+            return await AsyncTimedOperationResult<object>.GetResultFromSync(() => DeleteFileSync(file));
+        }
+
+        private object DeleteFileSync(string file)
+        {
+            if (!File.Exists(file))
+                throw new Exception($"No such file '{file}'.");
+
+            File.Delete(file);
+            return new { DeletedFile = file, TimeStamp = DateTime.Now };
         }
     }
 }

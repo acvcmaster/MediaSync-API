@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 using MediaSync.Services;
 using Swashbuckle.AspNetCore.Swagger;
 using Newtonsoft.Json.Converters;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace MediaSync
 {
@@ -38,8 +39,21 @@ namespace MediaSync
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new Info { Title = "MediaSync API", Version = "v1" });
+            }).ConfigureSwaggerGen((options) => {
+                options.OperationFilter<FileUploadOperation>(); //Register File Upload Operation Filter
             });
+#if DEBUG
+            services.AddSingleton<IFileService, FileService>((service) => new FileService(Configuration.GetSection("DefaultPathDev").Value));
+#elif DOCKER
+            services.AddSingleton<IFileService, FileService>((service) => new FileService(Configuration.GetSection("DefaultPathDocker").Value));
+#else
             services.AddSingleton<IFileService, FileService>((service) => new FileService(Configuration.GetSection("DefaultPath").Value));
+#endif
+
+            services.Configure<FormOptions>((options) => {
+                options.ValueLengthLimit = int.MaxValue;
+                options.MultipartBodyLengthLimit = long.MaxValue;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

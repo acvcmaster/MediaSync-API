@@ -7,6 +7,7 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using MediaSync.Shared;
 
 namespace MediaSync
 {
@@ -19,13 +20,11 @@ namespace MediaSync
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args)
         {
-#if DEBUG
             return WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>();
-#else
-            return WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>().UseUrls("http://*:8080");
-#endif
+                .UseStartup<Startup>().UseUrls("http://*:8080")
+                .UseKestrel((options) => {
+                    options.Limits.MaxRequestBodySize = long.MaxValue;
+                });
         }
     }
 }
