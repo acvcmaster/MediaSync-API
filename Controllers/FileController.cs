@@ -51,6 +51,16 @@ namespace MediaSync.Controllers
             return Ok(result);
         }
 
+        [HttpDelete]
+        public async Task<IActionResult> DeleteFile([FromQuery] string file)
+        {
+            var result = await FileService.DeleteFile(file);
+            if (result.Failed)
+                return BadRequest(result);
+                
+            return Ok(result);
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetFileNames([FromQuery] string[] extensions = null)
         {

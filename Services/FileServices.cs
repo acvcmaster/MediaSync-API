@@ -25,8 +25,8 @@ namespace MediaSync.Services
         Task<AsyncTimedOperationResult<object>> GetDetails(string file);
         Task<AsyncTimedOperationResult<byte[]>> GetThumbnail(string name, ThumbnailResolution? resolution);
         Task<AsyncTimedOperationResult<object>> SaveFile(IFormFile file);
+        Task<AsyncTimedOperationResult<object>> DeleteFile(string file);
         Task<AsyncTimedOperationResult<string[]>> GetMetadata(string file);
-        bool CheckValidPath(string path);
     }
 
     public class FileService : IFileService
@@ -44,7 +44,7 @@ namespace MediaSync.Services
         {
             if (path == string.Empty || path == null)
                 return;
-            
+
             if (path.StartsWith("~"))
                 path = Environment.CurrentDirectory + path.Substring(1);
 
@@ -58,12 +58,6 @@ namespace MediaSync.Services
             Environment.CurrentDirectory = path;
             _path = Environment.CurrentDirectory;
         }
-
-        public bool CheckValidPath(string path)
-        {
-            return Directory.Exists(path);
-        }
-
 
         public async Task<AsyncTimedOperationResult<string[]>> GetFileNames(string[] extensions = null)
         {
@@ -107,9 +101,9 @@ namespace MediaSync.Services
         {
             if (!File.Exists(file))
                 throw new Exception($"No such file '{file}'");
-            
-            FileInfo fileInfo =  new FileInfo(file);
-            return new 
+
+            FileInfo fileInfo = new FileInfo(file);
+            return new
             {
                 fileInfo.CreationTime,
                 fileInfo.LastAccessTime,
@@ -181,7 +175,7 @@ namespace MediaSync.Services
                 uploadStream.CopyTo(fileStream);
                 fileStream.Close();
             }
-            return new { SavedFile = file.FileName, CurrentTime = DateTime.Now };
+            return new { SavedFile = file.FileName, TimeStamp = DateTime.Now };
         }
 
         public async Task<AsyncTimedOperationResult<string[]>> GetMetadata(string file)
@@ -212,6 +206,20 @@ namespace MediaSync.Services
                 result.Add(outputStream.ReadLine());
             ffprobe.WaitForExit();
             return result.ToArray();
+        }
+
+        public async Task<AsyncTimedOperationResult<object>> DeleteFile(string file)
+        {
+            return await AsyncTimedOperationResult<object>.GetResultFromSync(() => DeleteFileSync(file));
+        }
+
+        private object DeleteFileSync(string file)
+        {
+            if (!File.Exists(file))
+                throw new Exception($"No such file '{file}'.");
+
+            File.Delete(file);
+            return new { DeletedFile = file, TimeStamp = DateTime.Now };
         }
     }
 }
