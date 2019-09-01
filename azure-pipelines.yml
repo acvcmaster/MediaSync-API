@@ -7,7 +7,7 @@ trigger:
 - master
 
 pool:
-  name: 'virt-docker'
+  vmImage: 'ubuntu-latest'
 
 variables:
   buildConfiguration: 'Release'
