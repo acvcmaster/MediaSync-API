@@ -9,11 +9,11 @@ WORKDIR /root/MediaSync-API
 RUN dotnet restore
 RUN dotnet publish -c Docker
 WORKDIR /root/MediaSync-API/bin/Docker/netcoreapp2.2/publish
-run mkdir Media
+RUN mkdir Media
 
 # Install dependencies
-run apt update
-run apt install -y ffmpeg wget locales
+RUN apt update
+RUN apt install -y ffmpeg wget locales
 
 # Generate and set locales for Unicode support
 RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
@@ -23,10 +23,10 @@ ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8     
 
 # Download samples
-# run wget https://yt-dl.org/latest/youtube-dl -O /usr/bin/youtube-dl
-# run chmod a+x /usr/bin/youtube-dl
-# run hash -r
-# run youtube-dl -f bestvideo+bestaudio/best -o "Media/%(title)s.%(ext)s" 'https://www.youtube.com/watch?v=AufydOsiD6M'
+# RUN wget https://yt-dl.org/latest/youtube-dl -O /usr/bin/youtube-dl
+# RUN chmod a+x /usr/bin/youtube-dl
+# RUN hash -r
+# RUN youtube-dl -f bestvideo+bestaudio/best -o "Media/%(title)s.%(ext)s" 'https://www.youtube.com/watch?v=AufydOsiD6M'
 
 EXPOSE 8080/tcp 
 
