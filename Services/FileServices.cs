@@ -22,7 +22,7 @@ namespace MediaSync.Services
         void SetPath(string path, bool aggressivePaths = true);
         Task<AsyncTimedOperationResult<string[]>> GetFileNames(string[] extensions = null);
         Task<AsyncTimedOperationResult<FileResult>> GetFile(string file);
-        Task<AsyncTimedOperationResult<object>> GetFileDetails(string file);
+        Task<AsyncTimedOperationResult<object>> GetDetails(string file);
         Task<AsyncTimedOperationResult<byte[]>> GetThumbnail(string name, ThumbnailResolution? resolution);
         Task<AsyncTimedOperationResult<object>> SaveFile(IFormFile file);
         Task<AsyncTimedOperationResult<string[]>> GetMetadata(string file);
@@ -98,12 +98,12 @@ namespace MediaSync.Services
             return result;
         }
 
-        public async Task<AsyncTimedOperationResult<object>> GetFileDetails(string file)
+        public async Task<AsyncTimedOperationResult<object>> GetDetails(string file)
         {
-            return await AsyncTimedOperationResult<object>.GetResultFromSync(() => GetFileDetailsSync(file));
+            return await AsyncTimedOperationResult<object>.GetResultFromSync(() => GetDetailsSync(file));
         }
 
-        private object GetFileDetailsSync(string file)
+        private object GetDetailsSync(string file)
         {
             if (!File.Exists(file))
                 throw new Exception($"No such file '{file}'");
@@ -147,35 +147,22 @@ namespace MediaSync.Services
                 }
             }
 
-            var temporaryFile = GetTemporaryFile("jpg");
-            var ffprobe = new Process
+            var ffmpeg = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "ffmpeg",
-                    Arguments = $"-ss 00:01:30 -i \"{file}\" -hide_banner -loglevel panic -v quiet -f image2 -vframes 1 -vf scale={X}:{Y} {temporaryFile}",
+                    Arguments = $"-ss 00:01:30 -i \"{file}\" -hide_banner -loglevel panic -v quiet -f image2 -vframes 1 -vf scale={X}:{Y} -",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     CreateNoWindow = true
                 }
             };
 
-            ffprobe.Start();
-            ffprobe.EnableRaisingEvents = true;
-            ffprobe.WaitForExit();
-            byte[] result = File.ReadAllBytes(temporaryFile);
-            File.Delete(temporaryFile);
+            ffmpeg.Start();
+            byte[] result = ffmpeg.StandardOutput.ReadBytesToEnd();
+            ffmpeg.WaitForExit();
             return result;
-        }
-
-        private string GetTemporaryFile(string extension)
-        {
-            while (true)
-            {
-                string result = $"tmp_{rng.Next(1, 100000)}.{extension}";
-                if (!File.Exists(result))
-                    return result;
-            }
         }
 
         public async Task<AsyncTimedOperationResult<object>> SaveFile(IFormFile file)

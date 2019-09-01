@@ -48,7 +48,7 @@ namespace MediaSync.Controllers
             if (result.Failed)
                 return BadRequest(result);
 
-            return Ok(result.Result);
+            return Ok(result);
         }
 
         [HttpGet]
@@ -58,17 +58,17 @@ namespace MediaSync.Controllers
             if (result.Failed)
                 return BadRequest(result);
 
-            return Ok(result.Result);
+            return Ok(result);
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetFileDetails(string file)
+        public async Task<IActionResult> GetDetails(string file)
         {
-            var result = await FileService.GetFileDetails(file);
+            var result = await FileService.GetDetails(file);
             if (result.Failed)
                 return BadRequest(result);
 
-            return Ok(result.Result);
+            return Ok(result);
         }
 
         [HttpGet]
@@ -100,7 +100,7 @@ namespace MediaSync.Controllers
             if (result.Failed)
                 return BadRequest(result);
 
-            return Ok(result.Result);
+            return Ok(result);
         }
     }
 }
