@@ -87,8 +87,11 @@ namespace MediaSync.Services
             string contentType;
             if (!new FileExtensionContentTypeProvider().TryGetContentType(file, out contentType))
                 throw new Exception($"Content type not found for '{file}.'");
+
+            StreamReader fileReader = new StreamReader(file);
+
             result.ContentType = contentType;
-            result.Data = File.ReadAllBytes(file);
+            result.Data = fileReader.BaseStream;
             return result;
         }
 
