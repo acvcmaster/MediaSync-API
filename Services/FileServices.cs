@@ -22,8 +22,9 @@ namespace MediaSync.Services
         void SetPath(string path, bool aggressivePaths = true);
         Task<AsyncTimedOperationResult<string[]>> GetFileNames(string[] extensions = null);
         Task<AsyncTimedOperationResult<FileResult>> GetFile(string file);
+        Task<AsyncTimedOperationResult<FileResult>> GetFileTranscoded(string file);
         Task<AsyncTimedOperationResult<object>> GetDetails(string file);
-        Task<AsyncTimedOperationResult<byte[]>> GetThumbnail(string name, ThumbnailResolution? resolution);
+        Task<AsyncTimedOperationResult<Stream>> GetThumbnail(string name, ThumbnailResolution? resolution);
         Task<AsyncTimedOperationResult<object>> SaveFile(IFormFile file);
         Task<AsyncTimedOperationResult<object>> DeleteFile(string file);
         Task<AsyncTimedOperationResult<string[]>> GetMetadata(string file);
@@ -95,6 +96,36 @@ namespace MediaSync.Services
             return result;
         }
 
+        public async Task<AsyncTimedOperationResult<FileResult>> GetFileTranscoded(string file)
+        {
+            return await AsyncTimedOperationResult<FileResult>.GetResultFromSync(() => GetFileTranscodedSync(file));
+        }
+
+        private FileResult GetFileTranscodedSync(string file)
+        {
+            if (!File.Exists(file))
+                throw new Exception($"No such file '{file}'");
+
+            var ffmpeg = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "ffmpeg",
+                    Arguments = $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v libx264 -crf 23 -preset veryfast -c:a aac -movflags frag_keyframe+empty_moov -f mp4  -",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true
+                }
+            };
+
+            ffmpeg.Start();
+            return new FileResult
+            {
+                Data = ffmpeg.StandardOutput.BaseStream,
+                ContentType = "video/mp4"
+            };
+        }
+
         public async Task<AsyncTimedOperationResult<object>> GetDetails(string file)
         {
             return await AsyncTimedOperationResult<object>.GetResultFromSync(() => GetDetailsSync(file));
@@ -116,12 +147,12 @@ namespace MediaSync.Services
             };
         }
 
-        public async Task<AsyncTimedOperationResult<byte[]>> GetThumbnail(string name, ThumbnailResolution? resolution)
+        public async Task<AsyncTimedOperationResult<Stream>> GetThumbnail(string name, ThumbnailResolution? resolution)
         {
-            return await AsyncTimedOperationResult<byte[]>.GetResultFromSync(() => GetThumbnailSync(name, resolution));
+            return await AsyncTimedOperationResult<Stream>.GetResultFromSync(() => GetThumbnailSync(name, resolution));
         }
 
-        private byte[] GetThumbnailSync(string file, ThumbnailResolution? resolution)
+        private Stream GetThumbnailSync(string file, ThumbnailResolution? resolution)
         {
             if (!File.Exists(file))
                 throw new Exception($"No such file '{file}'");
@@ -157,9 +188,7 @@ namespace MediaSync.Services
             };
 
             ffmpeg.Start();
-            byte[] result = ffmpeg.StandardOutput.ReadBytesToEnd();
-            ffmpeg.WaitForExit();
-            return result;
+            return ffmpeg.StandardOutput.BaseStream;
         }
 
         public async Task<AsyncTimedOperationResult<object>> SaveFile(IFormFile file)
