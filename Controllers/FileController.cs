@@ -93,6 +93,17 @@ namespace MediaSync.Controllers
         }
 
         [HttpGet]
+        [Produces("video/mp4", "application/json")]
+        public async Task<IActionResult> GetFileTranscoded([FromQuery] string file, [FromQuery] QualityPreset? quality = null)
+        {
+            var result = await FileService.GetFileTranscoded(file, quality);
+            if (result.Failed)
+                return BadRequest(result);
+            
+            return File(result.Result.Data, result.Result.ContentType);
+        }
+
+        [HttpGet]
         [Produces("image/jpeg", "application/json")]
         public async Task<IActionResult> GetThumbnail([FromQuery] string file, [FromQuery] ThumbnailResolution? resolution = null)
         {

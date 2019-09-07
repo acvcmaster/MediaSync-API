@@ -22,8 +22,9 @@ namespace MediaSync.Services
         void SetPath(string path, bool aggressivePaths = true);
         Task<AsyncTimedOperationResult<string[]>> GetFileNames(string[] extensions = null);
         Task<AsyncTimedOperationResult<FileResult>> GetFile(string file);
+        Task<AsyncTimedOperationResult<FileResult>> GetFileTranscoded(string file, QualityPreset? quality);
         Task<AsyncTimedOperationResult<object>> GetDetails(string file);
-        Task<AsyncTimedOperationResult<byte[]>> GetThumbnail(string name, ThumbnailResolution? resolution);
+        Task<AsyncTimedOperationResult<Stream>> GetThumbnail(string name, ThumbnailResolution? resolution);
         Task<AsyncTimedOperationResult<object>> SaveFile(IFormFile file);
         Task<AsyncTimedOperationResult<object>> DeleteFile(string file);
         Task<AsyncTimedOperationResult<string[]>> GetMetadata(string file);
@@ -87,9 +88,63 @@ namespace MediaSync.Services
             string contentType;
             if (!new FileExtensionContentTypeProvider().TryGetContentType(file, out contentType))
                 throw new Exception($"Content type not found for '{file}.'");
+
+            StreamReader fileReader = new StreamReader(file);
+
             result.ContentType = contentType;
-            result.Data = File.ReadAllBytes(file);
+            result.Data = fileReader.BaseStream;
             return result;
+        }
+
+        public async Task<AsyncTimedOperationResult<FileResult>> GetFileTranscoded(string file, QualityPreset? quality)
+        {
+            return await AsyncTimedOperationResult<FileResult>.GetResultFromSync(() => GetFileTranscodedSync(file, quality));
+        }
+
+        private FileResult GetFileTranscodedSync(string file, QualityPreset? quality)
+        {
+            if (!File.Exists(file))
+                throw new Exception($"No such file '{file}'");
+            
+            string crf = "23";
+            string scale = string.Empty;
+
+            if (quality.HasValue)
+            {
+                switch (quality.Value)
+                {
+                    case QualityPreset.Low:
+                        crf = "35";
+                        scale = "-vf scale=640:480";
+                        break;
+                    case QualityPreset.Medium:
+                        crf = "28";
+                        scale = "-vf scale=1280:720";
+                        break;
+                    default:
+                        crf = "23";
+                        break;
+                }
+            }
+
+            var ffmpeg = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "ffmpeg",
+                    Arguments = $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v libx264 -crf {crf} -preset veryfast -c:a aac -movflags frag_keyframe+empty_moov {scale} -f mp4  -",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true
+                }
+            };
+
+            ffmpeg.Start();
+            return new FileResult
+            {
+                Data = ffmpeg.StandardOutput.BaseStream,
+                ContentType = "video/mp4"
+            };
         }
 
         public async Task<AsyncTimedOperationResult<object>> GetDetails(string file)
@@ -113,12 +168,12 @@ namespace MediaSync.Services
             };
         }
 
-        public async Task<AsyncTimedOperationResult<byte[]>> GetThumbnail(string name, ThumbnailResolution? resolution)
+        public async Task<AsyncTimedOperationResult<Stream>> GetThumbnail(string name, ThumbnailResolution? resolution)
         {
-            return await AsyncTimedOperationResult<byte[]>.GetResultFromSync(() => GetThumbnailSync(name, resolution));
+            return await AsyncTimedOperationResult<Stream>.GetResultFromSync(() => GetThumbnailSync(name, resolution));
         }
 
-        private byte[] GetThumbnailSync(string file, ThumbnailResolution? resolution)
+        private Stream GetThumbnailSync(string file, ThumbnailResolution? resolution)
         {
             if (!File.Exists(file))
                 throw new Exception($"No such file '{file}'");
@@ -154,9 +209,7 @@ namespace MediaSync.Services
             };
 
             ffmpeg.Start();
-            byte[] result = ffmpeg.StandardOutput.ReadBytesToEnd();
-            ffmpeg.WaitForExit();
-            return result;
+            return ffmpeg.StandardOutput.BaseStream;
         }
 
         public async Task<AsyncTimedOperationResult<object>> SaveFile(IFormFile file)
