@@ -132,7 +132,11 @@ namespace MediaSync.Services
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "ffmpeg",
+#if ARM
+                    Arguments = $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v h264_omx -c:a aac -movflags frag_keyframe+empty_moov {scale} -f mp4  -",
+#else
                     Arguments = $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v libx264 -crf {crf} -preset veryfast -c:a aac -movflags frag_keyframe+empty_moov {scale} -f mp4  -",
+#endif
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     CreateNoWindow = true
