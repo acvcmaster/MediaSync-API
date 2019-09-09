@@ -107,7 +107,9 @@ namespace MediaSync.Services
                 throw new Exception($"No such file '{file}'");
             
             string crf = "23";
+#if ARM
             string bitrate = "2000k";
+#endif
             string scale = string.Empty;
 
             if (quality.HasValue)
@@ -117,16 +119,22 @@ namespace MediaSync.Services
                     case QualityPreset.Low:
                         crf = "35";
                         scale = "-vf scale=640:480";
+#if ARM
                         bitrate = "500k";
+#endif
                         break;
                     case QualityPreset.Medium:
                         crf = "28";
                         scale = "-vf scale=1280:720";
+#if ARM
                         bitrate = "1000k";
+#endif
                         break;
                     default:
                         crf = "23";
+#if ARM
                         bitrate = "2000k";
+#endif
                         break;
                 }
             }
