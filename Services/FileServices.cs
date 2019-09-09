@@ -107,6 +107,7 @@ namespace MediaSync.Services
                 throw new Exception($"No such file '{file}'");
             
             string crf = "23";
+            string bitrate = "2000k";
             string scale = string.Empty;
 
             if (quality.HasValue)
@@ -116,13 +117,16 @@ namespace MediaSync.Services
                     case QualityPreset.Low:
                         crf = "35";
                         scale = "-vf scale=640:480";
+                        bitrate = "500k";
                         break;
                     case QualityPreset.Medium:
                         crf = "28";
                         scale = "-vf scale=1280:720";
+                        bitrate = "1000k";
                         break;
                     default:
                         crf = "23";
+                        bitrate = "2000k";
                         break;
                 }
             }
@@ -133,7 +137,7 @@ namespace MediaSync.Services
                 {
                     FileName = "ffmpeg",
 #if ARM
-                    Arguments = $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v h264_omx -c:a aac -movflags frag_keyframe+empty_moov {scale} -f mp4  -",
+                    Arguments = $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v h264_omx -c:a aac -movflags frag_keyframe+empty_moov {scale} -b:v {bitrate} -f mp4  -",
 #else
                     Arguments = $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v libx264 -crf {crf} -preset veryfast -c:a aac -movflags frag_keyframe+empty_moov {scale} -f mp4  -",
 #endif
