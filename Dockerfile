@@ -1,4 +1,4 @@
-FROM microsoft/dotnet:latest
+FROM microsoft/dotnet:2.2-sdk-bionic
 
 # Copy files
 WORKDIR /root/
