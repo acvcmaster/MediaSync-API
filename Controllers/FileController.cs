@@ -94,9 +94,9 @@ namespace MediaSync.Controllers
 
         [HttpGet]
         [Produces("video/mp4", "application/json")]
-        public async Task<IActionResult> GetFileTranscoded([FromQuery] string file, [FromQuery] QualityPreset? quality = null)
+        public async Task<IActionResult> GetFileTranscoded([FromQuery] string file, [FromQuery] QualityPreset? quality = null, [FromQuery] bool changeContainersOnly = false)
         {
-            var result = await FileService.GetFileTranscoded(file, quality);
+            var result = await FileService.GetFileTranscoded(file, quality, changeContainersOnly);
             if (result.Failed)
                 return BadRequest(result);
             

@@ -22,7 +22,7 @@ namespace MediaSync.Services
         void SetPath(string path, bool aggressivePaths = true);
         Task<AsyncTimedOperationResult<string[]>> GetFileNames(string[] extensions = null);
         Task<AsyncTimedOperationResult<FileResult>> GetFile(string file);
-        Task<AsyncTimedOperationResult<FileResult>> GetFileTranscoded(string file, QualityPreset? quality);
+        Task<AsyncTimedOperationResult<FileResult>> GetFileTranscoded(string file, QualityPreset? quality, bool changeContainersOnly);
         Task<AsyncTimedOperationResult<object>> GetDetails(string file);
         Task<AsyncTimedOperationResult<Stream>> GetThumbnail(string name, ThumbnailResolution? resolution);
         Task<AsyncTimedOperationResult<object>> SaveFile(IFormFile file);
@@ -96,20 +96,17 @@ namespace MediaSync.Services
             return result;
         }
 
-        public async Task<AsyncTimedOperationResult<FileResult>> GetFileTranscoded(string file, QualityPreset? quality)
+        public async Task<AsyncTimedOperationResult<FileResult>> GetFileTranscoded(string file, QualityPreset? quality, bool changeContainersOnly)
         {
-            return await AsyncTimedOperationResult<FileResult>.GetResultFromSync(() => GetFileTranscodedSync(file, quality));
+            return await AsyncTimedOperationResult<FileResult>.GetResultFromSync(() => GetFileTranscodedSync(file, quality, changeContainersOnly));
         }
 
-        private FileResult GetFileTranscodedSync(string file, QualityPreset? quality)
+        private FileResult GetFileTranscodedSync(string file, QualityPreset? quality, bool changeContainersOnly)
         {
             if (!File.Exists(file))
                 throw new Exception($"No such file '{file}'");
             
             string crf = "23";
-#if ARM
-            string bitrate = "2000k";
-#endif
             string scale = string.Empty;
 
             if (quality.HasValue)
@@ -119,22 +116,13 @@ namespace MediaSync.Services
                     case QualityPreset.Low:
                         crf = "35";
                         scale = "-vf scale=640:480";
-#if ARM
-                        bitrate = "500k";
-#endif
                         break;
                     case QualityPreset.Medium:
                         crf = "28";
                         scale = "-vf scale=1280:720";
-#if ARM
-                        bitrate = "1000k";
-#endif
                         break;
                     default:
                         crf = "23";
-#if ARM
-                        bitrate = "2000k";
-#endif
                         break;
                 }
             }
@@ -144,10 +132,11 @@ namespace MediaSync.Services
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "ffmpeg",
-#if ARM
-                    Arguments = $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v h264_omx -c:a aac -movflags frag_keyframe+empty_moov {scale} -b:v {bitrate} -f mp4  -",
+#if ARM // On Raspberry Pi, change containers only
+                    Arguments = $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v copy -c:a copy -movflags frag_keyframe -f mp4  -",
 #else
-                    Arguments = $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v libx264 -crf {crf} -preset veryfast -c:a aac -movflags frag_keyframe+empty_moov {scale} -f mp4  -",
+                    Arguments = !changeContainersOnly ? $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v libx264 -crf {crf} -preset veryfast -c:a aac -movflags frag_keyframe {scale} -f mp4  -"
+                                    : $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v copy -c:a copy -movflags frag_keyframe -f mp4  -",
 #endif
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
