@@ -89,7 +89,7 @@ namespace MediaSync.Controllers
             if (result.Failed)
                 return BadRequest(result);
             
-            return File(result.Result.Data, result.Result.ContentType);
+            return File(result.Result.Data, result.Result.ContentType, file);
         }
 
         [HttpGet]
@@ -100,7 +100,7 @@ namespace MediaSync.Controllers
             if (result.Failed)
                 return BadRequest(result);
             
-            return File(result.Result.Data, result.Result.ContentType);
+            return File(result.Result.Data, result.Result.ContentType, file);
         }
 
         [HttpGet]
