@@ -135,7 +135,7 @@ namespace MediaSync.Services
 #if ARM // On Raspberry Pi, change containers only
                     Arguments = $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v copy -c:a copy -movflags frag_keyframe -strict -2 -f mp4  -",
 #else
-                    Arguments = !changeContainersOnly ? $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v libx264 -crf {crf} -preset veryfast -c:a aac -movflags frag_keyframe {scale} -f mp4  -"
+                    Arguments = !changeContainersOnly ? $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v libx264 -crf {crf} -preset veryfast -c:a aac -movflags frag_keyframe+empty_moov {scale} -f mp4  -"
                                     : $"-i \"{file}\" -hide_banner -loglevel panic -v quiet -c:v copy -c:a copy -movflags frag_keyframe -strict -2 -f mp4  -",
 #endif
                     UseShellExecute = false,

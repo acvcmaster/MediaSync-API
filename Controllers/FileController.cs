@@ -28,7 +28,7 @@ namespace MediaSync.Controllers
         }
 
 #if DEBUG
-        [HttpPatch]
+        [HttpPut]
         public IActionResult SetPath(string path)
         {
             try
