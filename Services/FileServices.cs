@@ -21,7 +21,7 @@ namespace MediaSync.Services
         string Path { get; }
         void SetPath(string path, bool aggressivePaths = true);
         Task<AsyncTimedOperationResult<string[]>> GetFileNames(string[] extensions = null);
-        Task<AsyncTimedOperationResult<FileResult>> GetFile(string file);
+        Task<AsyncTimedOperationResult<FileResult>> GetFile(string file, bool raw);
         Task<AsyncTimedOperationResult<FileResult>> GetFileTranscoded(string file, QualityPreset? quality, bool changeContainersOnly);
         Task<AsyncTimedOperationResult<object>> GetDetails(string file);
         Task<AsyncTimedOperationResult<Stream>> GetThumbnail(string name, ThumbnailResolution? resolution);
@@ -74,20 +74,24 @@ namespace MediaSync.Services
             return result.ToArray();
         }
 
-        public async Task<AsyncTimedOperationResult<FileResult>> GetFile(string file)
+        public async Task<AsyncTimedOperationResult<FileResult>> GetFile(string file, bool raw)
         {
-            return await AsyncTimedOperationResult<FileResult>.GetResultFromSync(() => GetFileSync(file));
+            return await AsyncTimedOperationResult<FileResult>.GetResultFromSync(() => GetFileSync(file, raw));
         }
 
-        private static FileResult GetFileSync(string file)
+        private static FileResult GetFileSync(string file, bool raw)
         {
             if (!File.Exists(file))
                 throw new Exception($"No such file '{file}'");
 
             FileResult result = new FileResult();
-            string contentType;
-            if (!new FileExtensionContentTypeProvider().TryGetContentType(file, out contentType))
-                throw new Exception($"Content type not found for '{file}.'");
+            string contentType = raw ? "application/octet-stream" : null;
+
+            if (!raw)
+            {
+                if (!new FileExtensionContentTypeProvider().TryGetContentType(file, out contentType))
+                    throw new Exception($"Content type not found for '{file}.'");
+            }
 
             StreamReader fileReader = new StreamReader(file);
 

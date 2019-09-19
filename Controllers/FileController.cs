@@ -83,9 +83,9 @@ namespace MediaSync.Controllers
 
         [HttpGet]
         [Produces("application/octet-stream", "application/json")]
-        public async Task<IActionResult> GetFile([FromQuery] string file)
+        public async Task<IActionResult> GetFile([FromQuery] string file, [FromQuery] bool raw = false)
         {
-            var result = await FileService.GetFile(file);
+            var result = await FileService.GetFile(file, raw);
             if (result.Failed)
                 return BadRequest(result);
             
