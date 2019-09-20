@@ -28,7 +28,7 @@ namespace MediaSync.Controllers
         }
 
 #if DEBUG
-        [HttpPatch]
+        [HttpPut]
         public IActionResult SetPath(string path)
         {
             try
@@ -83,24 +83,28 @@ namespace MediaSync.Controllers
 
         [HttpGet]
         [Produces("application/octet-stream", "application/json")]
-        public async Task<IActionResult> GetFile([FromQuery] string file)
+        public async Task<IActionResult> GetFile([FromQuery] string file, [FromQuery] bool raw = false)
         {
-            var result = await FileService.GetFile(file);
+            var result = await FileService.GetFile(file, raw);
             if (result.Failed)
                 return BadRequest(result);
             
-            return File(result.Result.Data, result.Result.ContentType);
+            return File(result.Result.Data, result.Result.ContentType, file);
         }
 
         [HttpGet]
         [Produces("video/mp4", "application/json")]
-        public async Task<IActionResult> GetFileTranscoded([FromQuery] string file, [FromQuery] QualityPreset? quality = null, [FromQuery] bool changeContainersOnly = false)
+        public async Task<IActionResult> GetFileTranscoded(
+            [FromQuery] string file,
+            [FromQuery] QualityPreset quality = QualityPreset.High,
+            [FromQuery] bool changeContainersOnly = false,
+            [FromQuery] bool hardwareAcceleration = false)
         {
-            var result = await FileService.GetFileTranscoded(file, quality, changeContainersOnly);
+            var result = await FileService.GetFileTranscoded(file, quality, changeContainersOnly, hardwareAcceleration);
             if (result.Failed)
                 return BadRequest(result);
             
-            return File(result.Result.Data, result.Result.ContentType);
+            return File(result.Result.Data, result.Result.ContentType, file);
         }
 
         [HttpGet]
