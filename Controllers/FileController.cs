@@ -89,7 +89,9 @@ namespace MediaSync.Controllers
             if (result.Failed)
                 return BadRequest(result);
             
-            return File(result.Result.Data, result.Result.ContentType, file);
+            var fileStreamResult = File(result.Result.Data, result.Result.ContentType, file);
+            fileStreamResult.EnableRangeProcessing = true;
+            return fileStreamResult;
         }
 
         [HttpGet]
