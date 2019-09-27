@@ -17,6 +17,18 @@ steps:
   displayName: 'dotnet build $(buildConfiguration)'
 
 - task: Docker@2
+  displayName: Build image
   inputs:
+    repository: $(imageName)
     command: 'build'
     Dockerfile: '**/Dockerfile'
+
+- task: Docker@2
+  displayName: Push image
+  inputs:
+    containerRegistry: |
+      $(dockerHub)
+    repository: $(imageName)
+    command: push
+    tags: |
+      latest
