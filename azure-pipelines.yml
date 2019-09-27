@@ -18,7 +18,7 @@ steps:
 
 - task: ArchiveFiles@2
   inputs:
-    rootFolderOrFile: '$(Build.Repository.LocalPath)/bin/Release/netcoreapp2.2/'
+    rootFolderOrFile: '$(Build.Repository.LocalPath)/bin/Release/netcoreapp2.2'
     includeRootFolder: true
     archiveType: 'zip'
     archiveFile: '$(Build.ArtifactStagingDirectory)/MediaSyncAPI_$(Build.BuildId).zip'
