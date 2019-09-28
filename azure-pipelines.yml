@@ -9,9 +9,6 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-variables:
-  buildConfiguration: 'Release'
-
 steps:
 
 - task: Docker@2
@@ -29,4 +26,4 @@ steps:
     repository: $(imageName)
     command: push
     tags: |
-      latest
+      $(Build.BuildId)
